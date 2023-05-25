@@ -1,0 +1,458 @@
+C51 COMPILER V9.60.0.0   STC8AX_UART                                                       05/25/2023 15:38:29 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE STC8AX_UART
+OBJECT MODULE PLACED IN .\Objects\STC8Ax_UART.obj
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE STC8Ax_LIB\src\STC8Ax_UART.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\User\inc;.\S
+                    -TC8Ax_LIB\inc;.\STC8Ax_LIB\core) DEBUG OBJECTEXTEND PRINT(.\Listings\STC8Ax_UART.lst) OBJECT(.\Objects\STC8Ax_UART.obj)
+
+line level    source
+
+   1          /*-------------------------------------------------------------------
+   2          /*      (C) Copyright 2021-2022, nbufe. All Rights Reserved 
+   3          /*-------------------------------------------------------------------
+   4          /* File name   : STC8Ax_UART.c
+   5          /* Description : STC8Ax 串口函数库
+   6          /* Author      : nbufe
+   7          /* Update date : 2021.12.15
+   8          /*-------------------------------------------------------------------
+   9          /* Update note:
+  10          /* ---------   -----------   ----------------------------------------
+  11          /*   Date        Author                       Note
+  12          /* ---------   -----------   ----------------------------------------
+  13          /*  
+  14          /*
+  15          **/
+  16          
+  17          /* 包含头文件 -------------------------------------------------------*/
+  18          #include "STC8Ax_UART.h"
+  19          
+  20          /* 私有类型定义 -----------------------------------------------------*/
+  21          /* None. */
+  22          
+  23          /* 私有宏定义 -------------------------------------------------------*/
+  24          /* None. */
+  25          
+  26          /* 私有变量 ---------------------------------------------------------*/
+  27          /* None. */
+  28          
+  29          /* 扩展变量 ---------------------------------------------------------*/
+  30          /* 串口忙标志位，自定义，防止多串口冲突的变量 */
+  31          uint8_t G_Uart_Busy_Flg = 0; //Busy flag of receive
+  32          
+  33          /* 私有函数原形 -----------------------------------------------------*/
+  34          /* None. */
+  35          
+  36          /* 函数体 -----------------------------------------------------------*/
+  37          /**
+  38           * 功能：串口1初始化函数
+  39           * 参数：uartx  串口初始化结构体句柄，初始化时请定义该句柄，并将其地址传参。
+  40           * 返回：SUCCESS 返回成功。
+  41           *       ERROR    返回失败。
+  42           * 说明：
+  43           */
+  44          ErrorStatus UART1_Init(const UART_InitTypeDef* uartx)
+  45          {
+  46   1          SM0 = uartx -> Mode >> 1, SM1 = uartx -> Mode;
+  47   1          switch(uartx -> BRTGen)
+  48   1          {
+  49   2              case UART_BRT_TIM1:
+  50   2              {
+  51   3                  TR1 = 0;        //Turn off timer0
+  52   3                  ET1 = 0;        //Ban timer0 interrupt
+  53   3                  AUXR &= 0xFE;   //Select timer 1 as baud rate generator
+  54   3                  TMOD &= 0x0F;       //Timer 1 is fixed to 16 bit auto reload mode
+C51 COMPILER V9.60.0.0   STC8AX_UART                                                       05/25/2023 15:38:29 PAGE 2   
+
+  55   3                  AUXR = (AUXR & 0xBF) | ( !uartx -> BRTMode << 6 );
+  56   3                  T1L = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(AUXR & 0x40)) + 1 )));
+  57   3                  T1H = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(AUXR & 0x40)) + 1 ))) >> 8;
+  58   3                  TR1 = 1;        //Turn on timer0
+  59   3                  break;
+  60   3              }
+  61   2              case UART_BRT_TIM2:
+  62   2              {
+  63   3                  AUXR &= 0xEF;  //Turn off timer2
+  64   3                  IE2 &= 0xFB;   //Ban timer2 interrupt
+  65   3                  AUXR |= 0x01;  //Select timer2 as baud rate generator
+  66   3                  AUXR = (AUXR & 0xFB) | ( !uartx -> BRTMode << 2 );
+  67   3                  T2L = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(AUXR & 0x04)) + 1 )));
+  68   3                  T2H = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(AUXR & 0x04)) + 1 ))) >> 8;
+  69   3                  AUXR |= 0X10;  //Turn on timer2
+  70   3                  break;
+  71   3              }
+  72   2              default:
+  73   2                  return ERROR;
+  74   2          }
+  75   1          AUXR = (AUXR & 0xDF) | (uartx -> BRTDouble << 5);
+  76   1          SCON = (SCON & 0xDF) | (uartx -> MulitComm << 5);
+  77   1          SCON = (SCON & 0xEF) | (uartx -> RxEnable << 4);
+  78   1          AUXR2 = (AUXR2 & 0xEF) | (uartx -> Relay << 4);
+  79   1          UART1_CLEAR_BUSY_FLAG();
+  80   1          return SUCCESS;
+  81   1      }
+  82          
+  83          /**
+  84           * 功能：串口中断初始化函数。
+  85           * 参数：pri 中断优先级。
+  86           *       run 使能控制位。
+  87           * 返回：SUCCESS 返回成功。
+  88           *       ERROR    返回失败。
+  89           * 说明：
+  90           */
+  91          ErrorStatus NVIC_UART1_Init(eNVIC_Pri pri, BOOL run)
+  92          {
+  93   1          ES = run;
+  94   1          NVIC_UART1_PRI(pri);
+  95   1          return SUCCESS;
+  96   1      }
+  97          
+  98          /**
+  99           * 功能：串口发送一个字节函数，
+ 100           * 参数：dat 要发送的字节数据。
+ 101           * 返回：None.
+ 102           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 103           */
+ 104          void UART1_Send_Byte(uint8_t dat)
+ 105          {
+ 106   1          while(UART1_GET_BUSY_FLAG());
+ 107   1          UART1_SET_BUSY_FLAG();
+ 108   1          SBUF = dat;
+ 109   1      }
+ 110          /**
+ 111           * 功能：串口发送字符串函数
+ 112           * 参数： str 要发送的字符串地址。
+ 113           * 返回：None.
+ 114           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 115           */
+ 116          void UART1_Send_String(const uint8_t *str)
+C51 COMPILER V9.60.0.0   STC8AX_UART                                                       05/25/2023 15:38:29 PAGE 3   
+
+ 117          {
+ 118   1          while(*str != '\0')
+ 119   1          {
+ 120   2              UART1_Send_Byte(*(str++));
+ 121   2          }
+ 122   1      }
+ 123          
+ 124          /**
+ 125           * 功能：串口发送数组函数
+ 126           * 参数：arry 要发送的数组地址。
+ 127           *       len  要发送的数组长度。
+ 128           * 返回：None.
+ 129           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 130           */
+ 131          void UART1_Send_Array(const uint8_t *arry, uint16_t len)
+ 132          {
+ 133   1          while(len--)
+ 134   1          {
+ 135   2              UART1_Send_Byte(*(arry++));
+ 136   2          }
+ 137   1      }
+ 138          
+ 139          /**
+ 140           * 功能：串口2初始化函数
+ 141           * 参数：uartx  串口初始化结构体句柄，初始化时请定义该句柄，并将其地址传参。
+ 142           * 返回：SUCCESS 返回成功。
+ 143           *       ERROR    返回失败。
+ 144           * 说明：
+ 145           */
+ 146          ErrorStatus UART2_Init(const UART_InitTypeDef* uartx)
+ 147          {
+ 148   1          S2CON = (S2CON & 0x3F) | ((uartx -> Mode & 0x02) << 6);
+ 149   1          if(uartx -> BRTGen == UART_BRT_TIM2)
+ 150   1          {
+ 151   2              AUXR &= 0xEF;  //Turn off timer2
+ 152   2              IE2 &= 0xFB;   //Ban timer2 interrupt
+ 153   2              AUXR = (AUXR & 0xFB) | ( !uartx -> BRTMode << 2 );
+ 154   2              T2L = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(AUXR & 0x04)) + 1 )));
+ 155   2              T2H = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(AUXR & 0x04)) + 1 ))) >> 8;
+ 156   2              AUXR |= 0X10;  //Turn on timer2
+ 157   2          }
+ 158   1          else return ERROR;
+ 159   1          S2CON = (S2CON & 0xDF) | (uartx -> MulitComm << 5);
+ 160   1          S2CON = (S2CON & 0xEF) | (uartx -> RxEnable << 4);
+ 161   1          UART2_CLEAR_BUSY_FLAG();
+ 162   1          return SUCCESS;
+ 163   1      }
+ 164          
+ 165          /**
+ 166           * 功能：串口中断初始化函数。
+ 167           * 参数：pri 中断优先级。
+ 168           *       run 使能控制位。
+ 169           * 返回：SUCCESS 返回成功。
+ 170           *       ERROR    返回失败。
+ 171           * 说明：
+ 172           */
+ 173          ErrorStatus NVIC_UART2_Init(eNVIC_Pri pri, BOOL run)
+ 174          {
+ 175   1          IE2 = (IE2 & 0xFE) | (run);
+ 176   1          NVIC_UART2_PRI(pri);
+ 177   1          return SUCCESS;
+ 178   1      }
+C51 COMPILER V9.60.0.0   STC8AX_UART                                                       05/25/2023 15:38:29 PAGE 4   
+
+ 179          
+ 180          /**
+ 181           * 功能：串口发送一个字节函数，
+ 182           * 参数：dat 要发送的字节数据。
+ 183           * 返回：None.
+ 184           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 185           */
+ 186          void UART2_Send_Byte(uint8_t dat)
+ 187          {
+ 188   1          while(UART2_GET_BUSY_FLAG());
+ 189   1          UART2_SET_BUSY_FLAG();
+ 190   1          S2BUF = dat;
+ 191   1      }
+ 192          /**
+ 193           * 功能：串口发送字符串函数
+ 194           * 参数： str 要发送的字符串地址。
+ 195           * 返回：None.
+ 196           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 197           */
+ 198          void UART2_Send_String(const uint8_t *str)
+ 199          {
+ 200   1          while(*str != '\0')
+ 201   1          {
+ 202   2              UART2_Send_Byte(*(str++));
+ 203   2          }
+ 204   1      }
+ 205          
+ 206          /**
+ 207           * 功能：串口发送数组函数
+ 208           * 参数：arry 要发送的数组地址。
+ 209           *       len  要发送的数组长度。
+ 210           * 返回：None.
+ 211           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 212           */
+ 213          void UART2_Send_Array(const uint8_t *arry, uint16_t len)
+ 214          {
+ 215   1          while(len--)
+ 216   1          {
+ 217   2              UART2_Send_Byte(*(arry++));
+ 218   2          }
+ 219   1      }
+ 220          
+ 221          /**
+ 222           * 功能：串口3初始化函数
+ 223           * 参数：uartx  串口初始化结构体句柄，初始化时请定义该句柄，并将其地址传参。
+ 224           * 返回：SUCCESS 返回成功。
+ 225           *       ERROR    返回失败。
+ 226           * 说明：
+ 227           */
+ 228          ErrorStatus UART3_Init(const UART_InitTypeDef* uartx)
+ 229          {
+ 230   1          S3CON = (S3CON & 0x3F) | ((uartx -> Mode & 0x02) << 6);
+ 231   1          switch(uartx -> BRTGen)
+ 232   1          {
+ 233   2              case UART_BRT_TIM2:
+ 234   2              {
+ 235   3                  AUXR &= 0xEF;  //Turn off timer2
+ 236   3                  IE2 &= 0xFB;   //Ban timer2 interrupt
+ 237   3                  S3CON &= 0xBF;  //Select timer2 as baud rate generator
+ 238   3                  AUXR = (AUXR & 0xFB) | ( !uartx -> BRTMode << 2 );
+ 239   3                  T2L = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(AUXR & 0x04)) + 1 )));
+ 240   3                  T2H = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(AUXR & 0x04)) + 1 ))) >> 8;
+C51 COMPILER V9.60.0.0   STC8AX_UART                                                       05/25/2023 15:38:29 PAGE 5   
+
+ 241   3                  AUXR |= 0X10;  //Turn on timer2
+ 242   3                  break;
+ 243   3              }
+ 244   2              case UART_BRT_TIM3:
+ 245   2              {
+ 246   3                  T4T3M &= 0xF7;  //Turn off timer3
+ 247   3                  IE2 &= 0xDF;  //Ban timer3 interrupt
+ 248   3                  S3CON |= 0x40;    //Select timer3 as baud rate generator
+ 249   3                  T4T3M = (T4T3M & 0xFD) | ( !uartx -> BRTMode << 1 );
+ 250   3                  T3L = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(T4T3M & 0x02)) + 1 )));
+ 251   3                  T3H = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(T4T3M & 0x02)) + 1 ))) >> 8;
+ 252   3                  T4T3M |= 0x08; //Turn on timer3
+ 253   3                  break;
+ 254   3              }
+ 255   2              default:
+ 256   2                  return ERROR;
+ 257   2          }
+ 258   1          S3CON = (S3CON & 0xDF) | (uartx -> MulitComm << 5);
+ 259   1          S3CON = (S3CON & 0xEF) | (uartx -> RxEnable << 4);
+ 260   1          UART3_CLEAR_BUSY_FLAG();
+ 261   1          return SUCCESS;
+ 262   1      }
+ 263          
+ 264          /**
+ 265           * 功能：串口中断初始化函数。
+ 266           * 参数：pri 中断优先级。
+ 267           *       run 使能控制位。
+ 268           * 返回：SUCCESS 返回成功。
+ 269           *       ERROR    返回失败。
+ 270           * 说明：
+ 271           */
+ 272          ErrorStatus NVIC_UART3_Init(BOOL run)
+ 273          {
+ 274   1          IE2 = (IE2 & 0xF7) | (run << 3);
+ 275   1          return SUCCESS;
+ 276   1      }
+ 277          
+ 278          /**
+ 279           * 功能：串口发送一个字节函数，
+ 280           * 参数：dat 要发送的字节数据。
+ 281           * 返回：None.
+ 282           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 283           */
+ 284          void UART3_Send_Byte(uint8_t dat)
+ 285          {
+ 286   1          while(UART3_GET_BUSY_FLAG());
+ 287   1          UART3_SET_BUSY_FLAG();
+ 288   1          S3BUF = dat;
+ 289   1      }
+ 290          
+ 291          /**
+ 292           * 功能：串口发送字符串函数
+ 293           * 参数： str 要发送的字符串地址。
+ 294           * 返回：None.
+ 295           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 296           */
+ 297          void UART3_Send_String(const uint8_t *str)
+ 298          {
+ 299   1          while(*str != '\0')
+ 300   1          {
+ 301   2              UART3_Send_Byte(*(str++));
+ 302   2          }
+C51 COMPILER V9.60.0.0   STC8AX_UART                                                       05/25/2023 15:38:29 PAGE 6   
+
+ 303   1      }
+ 304          
+ 305          /**
+ 306           * 功能：串口发送数组函数
+ 307           * 参数：arry 要发送的数组地址。
+ 308           *       len  要发送的数组长度。
+ 309           * 返回：None.
+ 310           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 311           */
+ 312          void UART3_Send_Array(const uint8_t *arry, uint16_t len)
+ 313          {
+ 314   1          while(len--)
+ 315   1          {
+ 316   2              UART3_Send_Byte(*(arry++));
+ 317   2          }
+ 318   1      }
+ 319          
+ 320          
+ 321          /**
+ 322           * 功能：串口4初始化函数
+ 323           * 参数：uartx  串口初始化结构体句柄，初始化时请定义该句柄，并将其地址传参。
+ 324           * 返回：SUCCESS 返回成功。
+ 325           *       ERROR    返回失败。
+ 326           * 说明：
+ 327           */
+ 328          ErrorStatus UART4_Init(const UART_InitTypeDef* uartx)
+ 329          {
+ 330   1          S4CON = (S4CON & 0x3F) | ((uartx -> Mode & 0x02) << 6);
+ 331   1          switch(uartx -> BRTGen)
+ 332   1          {
+ 333   2              case UART_BRT_TIM2:
+ 334   2              {
+ 335   3                  AUXR &= 0xEF;  //Turn off timer2
+ 336   3                  IE2 &= 0xFB;   //Ban timer2 interrupt
+ 337   3                  S4CON &= 0xBF;  //Select timer2 as baud rate generator
+ 338   3                  AUXR = (AUXR & 0xFB) | ( !uartx -> BRTMode << 2 );
+ 339   3                  T2L = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(AUXR & 0x04)) + 1 )));
+ 340   3                  T2H = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(AUXR & 0x04)) + 1 ))) >> 8;
+ 341   3                  AUXR |= 0X10;  //Turn on timer2
+ 342   3                  break;
+ 343   3              }
+ 344   2              case UART_BRT_TIM4:
+ 345   2              {
+ 346   3                  T4T3M &= 0x7F;  //Turn off timer3
+ 347   3                  IE2 &= 0xBF;  //Ban timer4 interrupt
+ 348   3                  S4CON |= 0x40;   //Select timer3 as baud rate generator
+ 349   3                  T4T3M = (T4T3M & 0xDF) | ( !uartx -> BRTMode << 5 );
+ 350   3                  T4L = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(T4T3M & 0x20)) + 1 )));
+ 351   3                  T4H = (65536UL - CONF_FOSC / (uartx -> BaudRate * 4 * (11 * (!(T4T3M & 0x20)) + 1 ))) >> 8;
+ 352   3                  T4T3M |= 0x80; //Turn on timer4
+ 353   3                  break;
+ 354   3              }
+ 355   2              default:
+ 356   2                  return ERROR;
+ 357   2          }
+ 358   1          S4CON = (S4CON & 0xDF) | (uartx -> MulitComm << 5);
+ 359   1          S4CON = (S4CON & 0xEF) | (uartx -> RxEnable << 4);
+ 360   1          UART4_CLEAR_BUSY_FLAG();
+ 361   1          return SUCCESS;
+ 362   1      }
+ 363          
+ 364          /**
+C51 COMPILER V9.60.0.0   STC8AX_UART                                                       05/25/2023 15:38:29 PAGE 7   
+
+ 365           * 功能：串口中断初始化函数。
+ 366           * 参数：pri 中断优先级。
+ 367           *       run 使能控制位。
+ 368           * 返回：SUCCESS 返回成功。
+ 369           *       ERROR    返回失败。
+ 370           * 说明：
+ 371           */
+ 372          ErrorStatus NVIC_UART4_Init(BOOL run)
+ 373          {
+ 374   1          IE2 = (IE2 & 0xEF) | (run << 4);
+ 375   1          return SUCCESS;
+ 376   1      }
+ 377          
+ 378          /**
+ 379           * 功能：串口发送一个字节函数，
+ 380           * 参数：dat 要发送的字节数据。
+ 381           * 返回：None.
+ 382           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 383           */
+ 384          void UART4_Send_Byte(uint8_t dat)
+ 385          {
+ 386   1          while(UART4_GET_BUSY_FLAG());
+ 387   1          UART4_SET_BUSY_FLAG();
+ 388   1          S4BUF = dat;
+ 389   1      }
+ 390          
+ 391          /**
+ 392          * 功能：串口发送字符串函数
+ 393          * 参数： str 要发送的字符串地址。
+ 394          * 返回：None.
+ 395          * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 396          */
+ 397          void UART4_Send_String(const uint8_t *str)
+ 398          {
+ 399   1          while(*str != '\0')
+ 400   1          {
+ 401   2              UART4_Send_Byte(*(str++));
+ 402   2          }
+ 403   1      }
+ 404          
+ 405          /**
+ 406           * 功能：串口发送数组函数
+ 407           * 参数：arry 要发送的数组地址。
+ 408           *       len  要发送的数组长度。
+ 409           * 返回：None.
+ 410           * 说明：需要开启中断，并在中断服务函数中清除发送标志位。
+ 411           */
+ 412          void UART4_Send_Array(const uint8_t *arry, uint16_t len)
+ 413          {
+ 414   1          while(len--)
+ 415   1          {
+ 416   2              UART4_Send_Byte(*(arry++));
+ 417   2          }
+ 418   1      }
+ 419          
+ 420          /*>>>>>>>>>> (C) COPYRIGHT NBUFE <<<<<< >>>>>> END OF FILE <<<<<<<<<<*/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2487    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+C51 COMPILER V9.60.0.0   STC8AX_UART                                                       05/25/2023 15:38:29 PAGE 8   
+
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1      36
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

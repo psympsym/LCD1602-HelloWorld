@@ -1,0 +1,9 @@
+".\Objects\STC8Ax_DELAY.obj",
+".\Objects\STC8Ax_GPIO.obj",
+".\Objects\main.obj",
+".\Objects\System_init.obj",
+".\Objects\LCD1602.obj",
+".\Objects\Time.obj",
+".\Objects\KeyScan.obj" 
+TO ".\Objects\Project" 
+PRINT(".\Listings\Project.m51") RAMSIZE(256) 

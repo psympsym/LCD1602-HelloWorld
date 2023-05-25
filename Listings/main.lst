@@ -1,0 +1,78 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              05/25/2023 19:29:04 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE User\main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\User\inc;.\STC8Ax_LIB\inc;.\S
+                    -TC8Ax_LIB\core) DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /*-------------------------------------------------------------------
+   2          /*      (C) Copyright 2023, PSYM. All Rights Reserved 
+   3          /*-------------------------------------------------------------------
+   4          /* File name   : main.c
+   5          /* Description : 
+   6          /* Author      : PSYM
+   7          /*-------------------------------------------------------------------
+   8          /* Update note:
+   9          /* -----------   -----------   --------------------------------------
+  10          /*    Date         Author                       Note
+  11          /* -----------   -----------   --------------------------------------
+  12          /* 2023-05-25,     psym
+  13          /*   13:45
+  14          **/
+  15          
+  16          /* 包含头文件 -------------------------------------------------------*/
+  17          #include "main.h"
+  18          
+  19          /* 私有类型定义 -----------------------------------------------------*/
+  20          /* None. */
+  21          
+  22          /* 私有宏定义 -------------------------------------------------------*/
+  23          /* None. */
+  24          
+  25          /* 私有变量 ---------------------------------------------------------*/
+  26          /* None. */
+  27          
+  28          /* 扩展变量 ---------------------------------------------------------*/
+  29          /* None. */
+  30          
+  31          /* 私有函数原形 -----------------------------------------------------*/
+  32          /* None. */
+  33          
+  34          /* 函数体 -----------------------------------------------------------*/
+  35          
+  36          /**
+  37           * @brief: None
+  38           * @param: None
+  39           * @return: None
+  40           * @note: None
+  41           */
+  42          void main()
+  43          {
+  44   1          System_Init();
+  45   1              Delay_ms(500);
+  46   1          Peripheral_Init();
+  47   1          while (1)
+  48   1          {
+  49   2              KeyServices();
+  50   2          }
+  51   1      }
+  52          /*>>>>>>>>>> (C) COPYRIGHT PSYM <<<<<< >>>>>> END OF FILE <<<<<<<<<<*/
+
+
+C51 COMPILER V9.60.0.0   MAIN                                                              05/25/2023 19:29:04 PAGE 2   
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     18    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

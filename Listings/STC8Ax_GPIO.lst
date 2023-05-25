@@ -1,0 +1,88 @@
+C51 COMPILER V9.60.0.0   STC8AX_GPIO                                                       05/25/2023 19:29:04 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE STC8AX_GPIO
+OBJECT MODULE PLACED IN .\Objects\STC8Ax_GPIO.obj
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE STC8Ax_LIB\src\STC8Ax_GPIO.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\User\inc;.\S
+                    -TC8Ax_LIB\inc;.\STC8Ax_LIB\core) DEBUG OBJECTEXTEND PRINT(.\Listings\STC8Ax_GPIO.lst) OBJECT(.\Objects\STC8Ax_GPIO.obj)
+
+line level    source
+
+   1          /*-------------------------------------------------------------------
+   2          /*      (C) Copyright 2021-2022, nbufe. All Rights Reserved 
+   3          /*-------------------------------------------------------------------
+   4          /* File name   : STC8Ax_GPIO.c
+   5          /* Description : STC8Ax GPIO函数库
+   6          /* Author      : nbufe
+   7          /* Update date : 2021.12.15 
+   8          /*-------------------------------------------------------------------
+   9          /* Update note:
+  10          /* ---------   -----------   ----------------------------------------
+  11          /*   Date        Author                       Note
+  12          /* ---------   -----------   ----------------------------------------
+  13          /*  
+  14          /*
+  15          **/
+  16          
+  17          /* 包含头文件 -------------------------------------------------------*/
+  18          #include "STC8Ax_GPIO.h"
+  19          
+  20          /* 私有类型定义 -----------------------------------------------------*/
+  21          /* None. */
+  22          
+  23          /* 私有宏定义 -------------------------------------------------------*/
+  24          /* None. */
+  25          
+  26          /* 私有变量 ---------------------------------------------------------*/
+  27          /* None. */
+  28          
+  29          /* 扩展变量 ---------------------------------------------------------*/
+  30          /* None. */
+  31          
+  32          /* 私有函数原形 -----------------------------------------------------*/
+  33          /* None. */
+  34          
+  35          /* 函数体 -----------------------------------------------------------*/
+  36          /*
+  37           * 功能: GPIO    端口初始化
+  38           * 参数: gpio:   GPIO端口, GPIO_P0 - GPIO_P7
+  39           *       pin:    I/O引脚,  GPIO_Pin_0 - GPIO_Pin_7 IO引脚 Px.0-7
+  40           *                         GPIO_Pin_LNIB IO引脚低 4 位
+  41           *                         GPIO_Pin_HNIB IO引脚高 4 位
+  42           *                         GPIO_Pin_All  IO所有引脚
+  43           *       mode:   工作模式
+  44           * 返回：SUCCESS 返回成功。
+  45           *                       ERROR   返回失败。
+  46           */
+  47          //#define chr(x)        #@x
+  48          //ErrorStatus GPIO_Initl(uint8_t gpio_x, uint8_t pin, eGPIO_Mode mode)
+  49          //{
+  50          //              if(gpio_x > GPIO_P7)    return ERROR;
+  51          //                      
+  52          //              if(mode & BIT0) Px_M0(gpio_x) |= (pin);
+  53          //              else    Px_M0(gpio_x) &= ~(pin);
+  54          //              
+C51 COMPILER V9.60.0.0   STC8AX_GPIO                                                       05/25/2023 19:29:04 PAGE 2   
+
+  55          //              if(mode & BIT1) Px_M1(gpio_x) |= (pin);
+  56          //              else    Px_M1(gpio_x) &= ~(pin);
+  57          
+  58          //              return SUCCESS;
+  59          //}
+  60          
+  61          
+  62          /*>>>>>>>>>> (C) COPYRIGHT NBUFE <<<<<< >>>>>> END OF FILE <<<<<<<<<<*/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

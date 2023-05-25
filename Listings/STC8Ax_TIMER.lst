@@ -1,0 +1,429 @@
+C51 COMPILER V9.60.0.0   STC8AX_TIMER                                                      05/25/2023 15:38:29 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE STC8AX_TIMER
+OBJECT MODULE PLACED IN .\Objects\STC8Ax_TIMER.obj
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE STC8Ax_LIB\src\STC8Ax_TIMER.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\User\inc;.\
+                    -STC8Ax_LIB\inc;.\STC8Ax_LIB\core) DEBUG OBJECTEXTEND PRINT(.\Listings\STC8Ax_TIMER.lst) OBJECT(.\Objects\STC8Ax_TIMER.ob
+                    -j)
+
+line level    source
+
+   1          /*-------------------------------------------------------------------
+   2          /*      (C) Copyright 2021-2022, nbufe. All Rights Reserved 
+   3          /*-------------------------------------------------------------------
+   4          /* File name   : STC8Ax_TIMER.c
+   5          /* Description : STC8Ax 定时器函数库
+   6          /* Author      : nbufe
+   7          /* Update date : 2021.12.15
+   8          /*-------------------------------------------------------------------
+   9          /* Update note:
+  10          /* ---------   -----------   ----------------------------------------
+  11          /*   Date        Author                       Note
+  12          /* ---------   -----------   ----------------------------------------
+  13          /*  
+  14          /*
+  15          **/
+  16          
+  17          /* 包含头文件 -------------------------------------------------------*/
+  18          #include        "STC8Ax_TIMER.h"
+  19          
+  20          /* 私有类型定义 -----------------------------------------------------*/
+  21          /* None. */
+  22          
+  23          /* 私有宏定义 -------------------------------------------------------*/
+  24          
+  25          /* 定时器工作模式选择宏函数（mode 工作模式，作用域为本文件）*/
+  26          #define TIMER0_MODE_CFG(mode)           do{TMOD = (TMOD & 0xFC) | (mode);}while(0)
+  27          #define TIMER1_MODE_CFG(mode)           do{TMOD = (TMOD & 0xCF) | (mode << 4);}while(0)
+  28          
+  29          /* 定时器指令周期选择宏函数（作用域为本文件）*/
+  30          #define TIMER0_TCLK_CFG(tCycle)         do{AUXR  = (AUXR  & 0x7F) | ( !tCycle << 7 );}while(0)
+  31          #define TIMER1_TCLK_CFG(tCycle)         do{AUXR  = (AUXR  & 0xBF) | ( !tCycle << 6 );}while(0)
+  32          #define TIMER2_TCLK_CFG(tCycle)         do{AUXR  = (AUXR  & 0xFB) | ( !tCycle << 2 );}while(0)
+  33          #define TIMER3_TCLK_CFG(tCycle)         do{T4T3M = (T4T3M & 0xFD) | ( !tCycle << 1 );}while(0)
+  34          #define TIMER4_TCLK_CFG(tCycle)         do{T4T3M = (T4T3M & 0xDF) | ( !tCycle << 5 );}while(0)
+  35          
+  36          /* 定时器定时时间设置函数（作用域为本文件）*/
+  37          #define TIMER0_TIM_CFG(time)                           \
+  38              do{ time = (65536UL - (sysClk_FRE / (1000000UL /  time  * (11 * (!(AUXR & 0x80)) + 1)) ) );         \
+  39                  G_Time0_CntValue = time;                           \
+  40              }while(0)
+  41                          
+  42          #define TIMER1_TIM_CFG(time)                           \
+  43              do{ time = (65536UL - (sysClk_FRE / (1000000UL /  time  * (11 * (!(AUXR & 0x40)) + 1)) ) );         \
+  44                  G_Time1_CntValue = time;                           \
+  45              }while(0)
+  46                          
+  47          #define TIMER2_TIM_CFG(time)                           \
+  48              do{ time = (65536UL - (sysClk_FRE / (1000000UL /  time  * (11 * (!(AUXR & 0x04)) + 1)) ) );         \
+  49              }while(0)
+  50                          
+  51          #define TIMER3_TIM_CFG(time)                           \
+  52              do{ time = (65536UL - (sysClk_FRE / (1000000UL /  time  * (11 * (!(T4T3M & 0x02)) + 1)) ) );        \
+  53              }while(0)
+C51 COMPILER V9.60.0.0   STC8AX_TIMER                                                      05/25/2023 15:38:29 PAGE 2   
+
+  54                          
+  55          #define TIMER4_TIM_CFG(time)                           \
+  56              do{ time = (65536UL - (sysClk_FRE / (1000000UL /  time  * (11 * (!(T4T3M & 0x20)) + 1)) ) );         \
+  57              }while(0)
+  58          
+  59          /* 私有变量 ---------------------------------------------------------*/
+  60          /* None. */
+  61          
+  62          /* 扩展变量 ---------------------------------------------------------*/
+  63          uint32_t G_Time0_CntValue = 0;
+  64          uint32_t G_Time1_CntValue = 0;
+  65          
+  66          /* 私有函数原形 -----------------------------------------------------*/
+  67          /* None. */
+  68          
+  69          /* 函数体 -----------------------------------------------------------*/
+  70          /**
+  71           * 功能：定时器0初始化函数。
+  72           * 参数：timerx  定时器初始化结构体句柄，初始化时请定义该句柄，并将其地址传参。
+  73           * 返回：SUCCESS 返回成功。
+  74           *       ERROR   返回失败。
+  75           * 说明：
+  76           */
+  77          ErrorStatus TIMER0_Init(const TIMER_InitTypeDef* timerx)
+  78          {
+  79   1                      TR0 = 0; //Turn off Timer0
+  80   1                      TMOD = (TMOD & 0xFB) | (timerx -> Type << 2);
+  81   1                      TIMER0_MODE_CFG(timerx -> Mode);
+  82   1                      TIMER0_TCLK_CFG(timerx -> TCycle);
+  83   1                      TIMER0_TIM_CFG(timerx -> Time);
+  84   1                      if(timerx -> Mode == TIMER_8BitAutoReload) 
+  85   1                                      T0L = (uint8_t)(timerx -> Time), T0H = (uint8_t)(timerx -> Time); 
+  86   1                      else                                       
+  87   1                                      T0L = (uint8_t)(timerx -> Time), T0H = (uint8_t)(timerx -> Time >> 8);
+  88   1                      INTCLKO = (INTCLKO & 0xFE) | (timerx -> ClkOut);
+  89   1                      TR0 = timerx -> Run;
+  90   1                      return SUCCESS;
+  91   1      }
+  92          
+  93          /**
+  94           * 功能：定时器0中断初始化函数。
+  95           * 参数：pri 中断优先级。
+  96           *       run 使能控制位。
+  97           * 返回：SUCCESS 返回成功。
+  98           *       ERROR   返回失败。
+  99           * 说明：
+ 100           */
+ 101          ErrorStatus NVIC_TIMER0_Init(eNVIC_Pri pri, BOOL run)
+ 102          {
+ 103   1                      ET0 = run;
+ 104   1                      NVIC_TIMER0_PRI(pri);
+ 105   1                      return SUCCESS;
+ 106   1      }
+ 107          
+ 108          /**
+ 109           * 功能：定时器0设置定时时间函数。
+ 110           * 参数：time 定时时间。。
+ 111           * 返回：SUCCESS 返回成功。
+ 112           *       ERROR   返回失败。
+ 113           * 说明：
+ 114           */
+ 115          ErrorStatus TIMER0_SetTime(uint32_t time)
+C51 COMPILER V9.60.0.0   STC8AX_TIMER                                                      05/25/2023 15:38:29 PAGE 3   
+
+ 116          {
+ 117   1                      TIMER0_TIM_CFG(time);
+ 118   1                      if((TMOD & 0x03) == 0x02) T0L = (uint8_t)(time), T0H = (uint8_t)(time);
+ 119   1                      else              T0L = (uint8_t)(time), T0H = (uint8_t)(time >> 8);
+ 120   1                      return SUCCESS;
+ 121   1      }
+ 122          
+ 123          
+ 124          /**
+ 125           * 功能：获取定时器0外部计数值
+ 126           * 参数：None
+ 127           * 返回：[uint16_t]返回计数值
+ 128           * 说明：
+ 129           */
+ 130          uint16_t TIMER0_GetCount(void)
+ 131          {
+ 132   1                      uint16 dat;
+ 133   1                      dat = (uint8)T0H << 8, dat = ((uint8)T0L) | dat;
+ 134   1                      return dat;
+ 135   1      }
+ 136          
+ 137          /**
+ 138           * 功能：定时器1初始化函数。
+ 139           * 参数：timerx  定时器初始化结构体句柄，初始化时请定义该句柄，并将其地址传参。
+ 140           * 返回：SUCCESS 返回成功。
+ 141           *       ERROR   返回失败。
+ 142           * 说明：
+ 143           */
+ 144          ErrorStatus TIMER1_Init(const TIMER_InitTypeDef* timerx)
+ 145          {
+ 146   1                      TR1 = 0; //Turn off Timer1
+ 147   1                      if(timerx -> Mode != TIMER_16BitAutoReloadNoMask) TIMER1_MODE_CFG(timerx -> Mode);
+ 148   1                      else return ERROR;
+ 149   1                      TMOD = (TMOD & 0xBF) | (timerx -> Type << 6);
+ 150   1                      TIMER1_TCLK_CFG(timerx -> TCycle);
+ 151   1                      TIMER1_TIM_CFG(timerx -> Time);
+ 152   1                      if(timerx -> Mode == TIMER_8BitAutoReload) 
+ 153   1                                      T1L = (uint8_t)(timerx -> Time), T1H = (uint8_t)(timerx -> Time);
+ 154   1                      else                                       
+ 155   1                                      T1L = (uint8_t)(timerx -> Time), T1H = (uint8_t)(timerx -> Time >> 8);
+ 156   1                      INTCLKO = (INTCLKO & 0xFD) | (timerx -> ClkOut << 1);
+ 157   1                      TF1 = 0; //Clear Flag
+ 158   1                      TR1 = timerx -> Run;
+ 159   1                      return SUCCESS;
+ 160   1      }
+ 161          
+ 162          /**
+ 163           * 功能：定时器1中断初始化函数。
+ 164           * 参数：pri 中断优先级。
+ 165           *       run 使能控制位。
+ 166           * 返回：SUCCESS 返回成功。
+ 167           *       ERROR   返回失败。
+ 168           * 说明：
+ 169           */
+ 170          ErrorStatus NVIC_TIMER1_Init(eNVIC_Pri pri, BOOL run)
+ 171          {
+ 172   1                      ET1 = run;
+ 173   1                      NVIC_TIMER1_PRI(pri);
+ 174   1                      return SUCCESS;
+ 175   1      }
+ 176          
+ 177          /**
+C51 COMPILER V9.60.0.0   STC8AX_TIMER                                                      05/25/2023 15:38:29 PAGE 4   
+
+ 178           * 功能：定时器1设置定时时间函数。
+ 179           * 参数：time 定时时间。。
+ 180           * 返回：SUCCESS 返回成功。
+ 181           *       ERROR   返回失败。
+ 182           * 说明：
+ 183           */
+ 184          ErrorStatus TIMER1_SetTime(uint32_t time)
+ 185          {
+ 186   1                      TIMER0_TIM_CFG(time);
+ 187   1                      if((TMOD & 0x30) == 0x20) T1L = (uint8_t)(time), T1H = (uint8_t)(time);
+ 188   1                      else              T1L = (uint8_t)(time), T1H = (uint8_t)(time >> 8);
+ 189   1                      return SUCCESS;
+ 190   1      }
+ 191          
+ 192          /**
+ 193           * 功能：获取定时器1外部计数值
+ 194           * 参数：None
+ 195           * 返回：[uint16_t]返回计数值
+ 196           * 说明：
+ 197           */
+ 198          uint16_t TIMER1_GetCount(void)
+ 199          {
+ 200   1                      uint16 dat;
+ 201   1                      dat = (uint8)T1H << 8, dat = ((uint8)T1L) | dat;
+ 202   1                      return dat;
+ 203   1      }       
+ 204          
+ 205          /**
+ 206           * 功能：定时器2初始化函数。
+ 207           * 参数：timerx  定时器初始化结构体句柄，初始化时请定义该句柄，并将其地址传参。
+ 208           * 返回：SUCCESS 返回成功。
+ 209           *       ERROR    返回失败。
+ 210           * 说明：
+ 211           */
+ 212          ErrorStatus TIMER2_Init(const TIMER_InitTypeDef* timerx)
+ 213          {
+ 214   1                      AUXR &= 0xEF; //Turn off timer2
+ 215   1                      AUXR = (AUXR & 0xF7) | (timerx -> Type << 3);
+ 216   1                      TIMER2_TCLK_CFG(timerx -> TCycle);
+ 217   1                      TIMER2_TIM_CFG(timerx -> Time);
+ 218   1                      T2L = (uint8_t)(timerx -> Time);
+ 219   1                      T2H = (uint8_t)(timerx -> Time >> 8);
+ 220   1                      INTCLKO = (INTCLKO & 0xFB) | (timerx -> ClkOut << 2);
+ 221   1                      AUXR = (AUXR & 0xEF) | (timerx -> Run << 4);
+ 222   1                      return SUCCESS;
+ 223   1      }
+ 224          
+ 225          /**
+ 226           * 功能：定时器2中断初始化函数。
+ 227           * 参数：pri 中断优先级。
+ 228           *       run 使能控制位。
+ 229           * 返回：SUCCESS 返回成功。
+ 230           *       ERROR   返回失败。
+ 231           * 说明：
+ 232           */
+ 233          ErrorStatus NVIC_TIMER2_Init(BOOL run)
+ 234          {
+ 235   1                      IE2 = (IE2 & 0xFB) | (run << 2);
+ 236   1                      return SUCCESS;
+ 237   1      }
+ 238          
+ 239          /**
+C51 COMPILER V9.60.0.0   STC8AX_TIMER                                                      05/25/2023 15:38:29 PAGE 5   
+
+ 240           * 功能：定时器2设置定时时间函数。
+ 241           * 参数：time 定时时间。。
+ 242           * 返回：SUCCESS 返回成功。
+ 243           *       ERROR   返回失败。
+ 244           * 说明：
+ 245           */
+ 246          ErrorStatus TIMER2_SetTime(uint32_t time)
+ 247          {
+ 248   1                      TIMER2_TIM_CFG(time);
+ 249   1                      T2L = (uint8_t)(time), T2H = (uint8_t)(time >> 8);
+ 250   1                      return SUCCESS;
+ 251   1      }
+ 252                  
+ 253          
+ 254          /**
+ 255           * 功能：获取定时器2外部计数值
+ 256           * 参数：None
+ 257           * 返回：[uint16_t]返回计数值
+ 258           * 说明：
+ 259           */
+ 260          uint16_t TIMER2_GetCount(void)
+ 261          {
+ 262   1                      uint16 dat;
+ 263   1                      dat = (uint8)T2H << 8, dat = ((uint8)T2L) | dat;
+ 264   1                      return dat;
+ 265   1      }
+ 266          
+ 267          /**
+ 268           * 功能：定时器3初始化函数。
+ 269           * 参数：timerx  定时器初始化结构体句柄，初始化时请定义该句柄，并将其地址传参。
+ 270           * 返回：SUCCESS 返回成功。
+ 271           *       ERROR   返回失败。
+ 272           * 说明：
+ 273           */
+ 274          ErrorStatus TIMER3_Init(const TIMER_InitTypeDef* timerx)
+ 275          {
+ 276   1                      T4T3M &= 0XF7;//Turn off timer3
+ 277   1                      T4T3M = (T4T3M & 0xFB) | (timerx -> Type << 2);
+ 278   1                      TIMER3_TCLK_CFG(timerx -> TCycle);
+ 279   1                      TIMER3_TIM_CFG(timerx -> Time);
+ 280   1                      T3L = (uint8_t)(timerx -> Time);
+ 281   1                      T3H = (uint8_t)(timerx -> Time >> 8);
+ 282   1                      T4T3M = (T4T3M & 0xFE) | (timerx -> ClkOut);
+ 283   1                      T4T3M = (T4T3M & 0xF7) | (timerx -> Run << 3);
+ 284   1                      return SUCCESS;
+ 285   1      }
+ 286          
+ 287          /**
+ 288           * 功能：定时器3中断初始化函数。
+ 289           * 参数：pri 中断优先级。
+ 290           *       run 使能控制位。
+ 291           * 返回：SUCCESS 返回成功。
+ 292           *       ERROR   返回失败。
+ 293           * 说明：
+ 294           */
+ 295          ErrorStatus NVIC_TIMER3_Init(BOOL run)
+ 296          {
+ 297   1                      IE2 = (IE2 & 0xDF) | (run << 5);
+ 298   1                      return SUCCESS;
+ 299   1      }
+ 300          
+ 301          /**
+C51 COMPILER V9.60.0.0   STC8AX_TIMER                                                      05/25/2023 15:38:29 PAGE 6   
+
+ 302           * 功能：定时器3设置定时时间函数。
+ 303           * 参数：time 定时时间。。
+ 304           * 返回：SUCCESS 返回成功。
+ 305           *       ERROR   返回失败。
+ 306           * 说明：
+ 307           */
+ 308          ErrorStatus TIMER3_SetTime(uint32_t time)
+ 309          {
+ 310   1                      TIMER3_TIM_CFG(time);
+ 311   1                      T3L = (uint8_t)(time), T3H = (uint8_t)(time >> 8);
+ 312   1                      return SUCCESS;
+ 313   1      }
+ 314          
+ 315          /**
+ 316           * 功能：获取定时器3外部计数值
+ 317           * 参数：None
+ 318           * 返回：None
+ 319           * 说明：
+ 320           */
+ 321          uint16_t TIMER3_GetCount(void)
+ 322          {
+ 323   1                      uint16 dat;
+ 324   1      
+ 325   1                      dat = (uint8)T3H << 8, dat = ((uint8)T3L) | dat;
+ 326   1                      return dat;
+ 327   1      }
+ 328          
+ 329          /**
+ 330           * 功能：定时器4初始化函数。
+ 331           * 参数：timerx  定时器初始化结构体句柄，初始化时请定义该句柄，并将其地址传参。
+ 332           * 返回：SUCCESS 返回成功。
+ 333           *       ERROR   返回失败。
+ 334           * 说明：
+ 335           */
+ 336          ErrorStatus TIMER4_Init(const TIMER_InitTypeDef* timerx)
+ 337          {
+ 338   1                      T4T3M &= 0X7F; //Turn off timer4
+ 339   1                      T4T3M = (T4T3M & 0xBF) | (timerx -> Type << 6);
+ 340   1                      TIMER4_TCLK_CFG(timerx -> TCycle);
+ 341   1                      TIMER4_TIM_CFG(timerx -> Time);
+ 342   1                      T4L = (uint8_t)(timerx -> Time);
+ 343   1                      T4H = (uint8_t)(timerx -> Time >> 8);
+ 344   1                      T4T3M = (T4T3M & 0xEF) | (timerx -> ClkOut << 4);
+ 345   1                      T4T3M = (T4T3M & 0x7F) | (timerx -> Run << 7);
+ 346   1                      return SUCCESS;
+ 347   1      }
+ 348          
+ 349          /**
+ 350           * 功能：定时器4中断初始化函数。
+ 351           * 参数：pri 中断优先级。
+ 352           *       run 使能控制位。
+ 353           * 返回：SUCCESS 返回成功。
+ 354           *       ERROR    返回失败。
+ 355           * 说明：
+ 356           */
+ 357          ErrorStatus NVIC_TIMER4_Init(BOOL run)
+ 358          {
+ 359   1                      IE2 = (IE2 & 0xBF) | (run << 6);
+ 360   1                      return SUCCESS;
+ 361   1      }
+ 362          
+ 363          /**
+C51 COMPILER V9.60.0.0   STC8AX_TIMER                                                      05/25/2023 15:38:29 PAGE 7   
+
+ 364           * 功能：定时器4设置定时时间函数。
+ 365           * 参数：time 定时时间。。
+ 366           * 返回：SUCCESS 返回成功。
+ 367           *       ERROR   返回失败。
+ 368           * 说明：
+ 369           */
+ 370          ErrorStatus TIMER4_SetTime(uint32_t time)
+ 371          {
+ 372   1                      TIMER4_TIM_CFG(time);
+ 373   1                      T4L = (uint8_t)(time), T4H = (uint8_t)(time >> 8);
+ 374   1                      return SUCCESS;
+ 375   1      }
+ 376          
+ 377          /**
+ 378           * 功能：获取定时器4外部计数值
+ 379           * 参数：None
+ 380           * 返回：[uint16_t]返回计数值
+ 381           * 说明：
+ 382           */
+ 383          uint16_t TIMER4_GetCount(void)
+ 384          {
+ 385   1                      uint16 dat;
+ 386   1      
+ 387   1                      dat = (uint8)T4H << 8, dat = ((uint8)T4L) | dat;
+ 388   1                      return dat;
+ 389   1      }
+ 390          
+ 391          
+ 392          /*>>>>>>>>>> (C) COPYRIGHT NBUFE <<<<<< >>>>>> END OF FILE <<<<<<<<<<*/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2148    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      8      35
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

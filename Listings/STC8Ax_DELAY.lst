@@ -1,0 +1,86 @@
+C51 COMPILER V9.60.0.0   STC8AX_DELAY                                                      05/25/2023 19:29:04 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE STC8AX_DELAY
+OBJECT MODULE PLACED IN .\Objects\STC8Ax_DELAY.obj
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE STC8Ax_LIB\src\STC8Ax_DELAY.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\User\inc;.\
+                    -STC8Ax_LIB\inc;.\STC8Ax_LIB\core) DEBUG OBJECTEXTEND PRINT(.\Listings\STC8Ax_DELAY.lst) OBJECT(.\Objects\STC8Ax_DELAY.ob
+                    -j)
+
+line level    source
+
+   1          /*-------------------------------------------------------------------
+   2          /*      (C) Copyright 2021-2022, nbufe. All Rights Reserved 
+   3          /*-------------------------------------------------------------------
+   4          /* File name   : STC8Ax_DELAY.c
+   5          /* Description : STC8Ax 延时函数库
+   6          /* Author      : nbufe
+   7          /* Update date : 2021.12.15 
+   8          /*-------------------------------------------------------------------
+   9          /* Update note:
+  10          /* ---------   -----------   ----------------------------------------
+  11          /*   Date        Author                       Note
+  12          /* ---------   -----------   ----------------------------------------
+  13          /*  
+  14          /*
+  15          **/
+  16          
+  17          /* 包含头文件 -------------------------------------------------------*/
+  18          #include "STC8Ax_DELAY.h"
+  19          
+  20          /* 私有类型定义 -----------------------------------------------------*/
+  21          /* None. */
+  22          /* 私有宏定义 -------------------------------------------------------*/
+  23          /* None. */
+  24          /* 私有变量 ---------------------------------------------------------*/
+  25          /* None. */
+  26          /* 扩展变量 ---------------------------------------------------------*/
+  27          /* None. */
+  28          /* 私有函数原形 -----------------------------------------------------*/
+  29          /* None. */
+  30          /* 函数体 -----------------------------------------------------------*/
+  31          /**
+  32           * 功能：延时函数，us级别。
+  33           * 参数：nus 延时时间
+  34           * 返回：None
+  35           * 说明：
+  36           */
+  37          //void Delay_Init(void)
+  38          //{
+  39          //              sysClk_FRE = Get_SysClk_FRE();
+  40          //}
+  41          
+  42          /**
+  43           * 功能：延时函数，ms级别。
+  44           * 参数：nms 延时时间
+  45           * 返回：None
+  46           * 说明：
+  47           */
+  48          void Delay_ms(uint16_t nms)
+  49          {
+  50   1          uint16_t i;
+  51   1          do
+  52   1          {
+  53   2              i = 1844;
+C51 COMPILER V9.60.0.0   STC8AX_DELAY                                                      05/25/2023 19:29:04 PAGE 2   
+
+  54   2              while(--i);
+  55   2          }
+  56   1          while(--nms);
+  57   1      }
+  58          
+  59          /*>>>>>>>>>> (C) COPYRIGHT NBUFE <<<<<< >>>>>> END OF FILE <<<<<<<<<<*/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     23    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

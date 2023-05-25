@@ -1,0 +1,152 @@
+C51 COMPILER V9.60.0.0   KEYSCAN                                                           05/25/2023 19:29:05 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE KEYSCAN
+OBJECT MODULE PLACED IN .\Objects\KeyScan.obj
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE User\src\KeyScan.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\User\inc;.\STC8Ax_LIB\
+                    -inc;.\STC8Ax_LIB\core) DEBUG OBJECTEXTEND PRINT(.\Listings\KeyScan.lst) OBJECT(.\Objects\KeyScan.obj)
+
+line level    source
+
+   1          /* ---------------------------------- 包含头文件 --------------------------------- */
+   2          #include "KeyScan.h"
+   3          
+   4          /* ---------------------------------- 私有宏定义 --------------------------------- */
+   5          #define KeyTime 10 // 消抖计数器的值
+   6          #define KEYPORT P5 // 按键端口
+   7          
+   8          /* ---------------------------------- 私有定义 ---------------------------------- */
+   9          sbit Key1 = KEYPORT ^ 1;
+  10          sbit Key2 = KEYPORT ^ 0;
+  11          sbit Key3 = KEYPORT ^ 2;
+  12          sbit Key4 = KEYPORT ^ 3;
+  13          
+  14          /* ---------------------------------- 扩展变量 ---------------------------------- */
+  15          uint8 roll = 0;
+  16          
+  17          /* ---------------------------------- 私有变量 ---------------------------------- */
+  18          uint8 Keysign = 0;  // 按键标志
+  19          uint8 Key1Time = 0; // 按键计数器1, 用于按键消抖
+  20          uint8 Key2Time = 0; // 按键计数器2, 用于按键消抖
+  21          uint8 Key3Time = 0; // 按键计数器3, 用于按键消抖
+  22          uint8 Key4Time = 0; // 按键计数器4, 用于按键消抖
+  23          
+  24          uint8 Key1Flag = 0; // 按键自锁标志1
+  25          uint8 Key2Flag = 0; // 按键自锁标志2
+  26          uint8 Key3Flag = 0; // 按键自锁标志3
+  27          uint8 Key4Flag = 0; // 按键自锁标志4
+  28          
+  29          /* ---------------------------------- 私有函数 ---------------------------------- */
+  30          
+  31          /**
+  32           * @brief 按键扫描
+  33           * @note 普通按键扫描
+  34           */
+  35          void KeyScan()
+  36          {
+  37   1          if (Key1 == 1) // 按键释放
+  38   1          {
+  39   2              Key1Flag = 1; // 按键标志开
+  40   2              Key1Time = 0; // 按键计数器1置0
+  41   2          }
+  42   1          else if (Key1Flag)
+  43   1          {
+  44   2              // 按键消抖
+  45   2              if (++Key1Time > KeyTime)
+  46   2              {
+  47   3                  Key1Time = 0; // 按键计数器1置0
+  48   3                  Key1Flag = 0; // 按键标志关
+  49   3                  Keysign = 1;  // 按键标志置1
+  50   3              }
+  51   2          }
+  52   1      
+  53   1          if (Key2 == 1) // 按键释放
+  54   1          {
+C51 COMPILER V9.60.0.0   KEYSCAN                                                           05/25/2023 19:29:05 PAGE 2   
+
+  55   2              Key2Flag = 1; // 按键标志开
+  56   2              Key2Time = 0; // 按键计数器2置0
+  57   2          }
+  58   1          else if (Key2Flag)
+  59   1          {
+  60   2              // 按键消抖
+  61   2              if (++Key2Time > KeyTime)
+  62   2              {
+  63   3                  Key2Time = 0; // 按键计数器2置0
+  64   3                  Key2Flag = 0; // 按键标志关
+  65   3                  Keysign = 2;  // 按键标志置2
+  66   3              }
+  67   2          }
+  68   1      
+  69   1          if (Key3 == 1) // 按键释放
+  70   1          {
+  71   2              Key3Flag = 1; // 按键标志开
+  72   2              Key3Time = 0; // 按键计数器3置0
+  73   2          }
+  74   1          else if (Key3Flag)
+  75   1          {
+  76   2              // 按键消抖
+  77   2              if (++Key3Time > KeyTime)
+  78   2              {
+  79   3                  Key3Time = 0; // 按键计数器3置0
+  80   3                  Key3Flag = 0; // 按键标志关
+  81   3                  Keysign = 3;  // 按键标志置3
+  82   3              }
+  83   2          }
+  84   1      
+  85   1          if (Key4 == 1) // 按键释放
+  86   1          {
+  87   2              Key4Flag = 1; // 按键标志开
+  88   2              Key4Time = 0; // 按键计数器4置0
+  89   2          }
+  90   1          else if (Key4Flag)
+  91   1          {
+  92   2              // 按键消抖
+  93   2              if (++Key4Time > KeyTime)
+  94   2              {
+  95   3                  Key4Time = 0; // 按键计数器4置0
+  96   3                  Key4Flag = 0; // 按键标志关
+  97   3                  Keysign = 4;  // 按键标志置4
+  98   3              }
+  99   2          }
+ 100   1      }
+ 101          
+ 102          /**
+ 103           * @brief 按键服务程序
+ 104           */
+ 105          void KeyServices()
+ 106          {
+ 107   1          switch (Keysign)
+ 108   1          {
+ 109   2          case 1:
+ 110   2              roll = 1;
+ 111   2              break;
+ 112   2          case 2:
+ 113   2              roll = 2;
+ 114   2              break;
+ 115   2          case 3:
+ 116   2              roll = 0;
+C51 COMPILER V9.60.0.0   KEYSCAN                                                           05/25/2023 19:29:05 PAGE 3   
+
+ 117   2              break;
+ 118   2          case 4:
+ 119   2              break;
+ 120   2          default:
+ 121   2              break;
+ 122   2          }
+ 123   1          Keysign = 0;
+ 124   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    174    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     10    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

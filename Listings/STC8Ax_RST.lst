@@ -1,0 +1,115 @@
+C51 COMPILER V9.60.0.0   STC8AX_RST                                                        05/25/2023 15:38:29 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE STC8AX_RST
+OBJECT MODULE PLACED IN .\Objects\STC8Ax_RST.obj
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE STC8Ax_LIB\src\STC8Ax_RST.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\User\inc;.\ST
+                    -C8Ax_LIB\inc;.\STC8Ax_LIB\core) DEBUG OBJECTEXTEND PRINT(.\Listings\STC8Ax_RST.lst) OBJECT(.\Objects\STC8Ax_RST.obj)
+
+line level    source
+
+   1          /*-------------------------------------------------------------------
+   2          /*      (C) Copyright 2021-2022, nbufe. All Rights Reserved 
+   3          /*-------------------------------------------------------------------
+   4          /* File name   : STC8Ax_RST.c
+   5          /* Description : STC8Ax RST函数库
+   6          /* Author      : nbufe
+   7          /* Update date : 2021.12.15
+   8          /*-------------------------------------------------------------------
+   9          /* Update note:
+  10          /* ---------   -----------   ----------------------------------------
+  11          /*   Date        Author                       Note
+  12          /* ---------   -----------   ----------------------------------------
+  13          /*  
+  14          /*
+  15          **/
+  16          
+  17          /* 包含头文件 -------------------------------------------------------*/
+  18          #include        "STC8Ax_RST.h"
+  19          
+  20          /* 私有类型定义 -----------------------------------------------------*/
+  21          /* None. */
+  22          
+  23          /* 私有宏定义 -------------------------------------------------------*/
+  24          /* None. */
+  25          
+  26          /* 私有变量 ---------------------------------------------------------*/
+  27          /* None. */
+  28          
+  29          /* 扩展变量 ---------------------------------------------------------*/
+  30          /* None. */
+  31          
+  32          /* 私有函数原形 -----------------------------------------------------*/
+  33          /* None. */
+  34          
+  35          /* 函数体 -----------------------------------------------------------*/
+  36          /**
+  37           * 功能：低压复位函数，可以选择不同低压复位标准
+  38           * 参数：lvDiv   低压复位标准
+  39           *       run     使能控制位。
+  40           * 返回：SUCCESS 返回成功
+  41           *       FSC_FAIL    返回失败
+  42           * 说明：
+  43           */
+  44          ErrorStatus LVD_RST_Init(eLVD_RstDiv lvDiv, BOOL run)
+  45          {
+  46   1          RSTCFG = (RSTCFG & 0xFC) | lvDiv;
+  47   1          RSTCFG = (RSTCFG & 0xEF) | (run << 6);
+  48   1          return SUCCESS;
+  49   1      }
+  50          
+  51          /**
+  52           * 功能：软件复位控制函数
+  53           * 参数：choice   复位方式选择
+  54           *       run      使能控制位。
+C51 COMPILER V9.60.0.0   STC8AX_RST                                                        05/25/2023 15:38:29 PAGE 2   
+
+  55           * 返回：SUCCESS 返回成功
+  56           *       FSC_FAIL    返回失败
+  57           * 说明：需要在串口中断里调用，需要在STC-ISP助手里设置下载口令：10个0x7F。
+  58           */
+  59          ErrorStatus SFW_RST_Ctrl(eRST_Type choice, BOOL run)
+  60          {
+  61   1          IAP_CONTR = (IAP_CONTR & 0xBF) | (choice << 6);
+  62   1          IAP_CONTR = (IAP_CONTR & 0xDF) | (run << 5);
+  63   1          return SUCCESS;
+  64   1      }
+  65          
+  66          /**
+  67           * 功能：软件复位自动下载函数
+  68           * 参数：None.
+  69           * 返回：None
+  70           * 说明：需要在串口中断里调用，需要在STC-ISP助手里设置下载口令：10个0x7F。
+  71           */
+  72          void Auto_RST_download(void)
+  73          {
+  74   1          static uint8_t semCont = 0;
+  75   1          if(SBUF == 0x7F || SBUF == 0x80)
+  76   1          {
+  77   2              if(++semCont >= 10)
+  78   2              {
+  79   3                  semCont = 0;
+  80   3                  IAP_CONTR = 0x60;
+  81   3              }
+  82   2          }
+  83   1          else
+  84   1          {
+  85   2              semCont = 0;
+  86   2          }
+  87   1      }
+  88          
+  89          /*>>>>>>>>>> (C) COPYRIGHT NBUFE <<<<<< >>>>>> END OF FILE <<<<<<<<<<*/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     92    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

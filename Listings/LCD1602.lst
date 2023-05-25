@@ -1,0 +1,210 @@
+C51 COMPILER V9.60.0.0   LCD1602                                                           05/25/2023 19:29:05 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE LCD1602
+OBJECT MODULE PLACED IN .\Objects\LCD1602.obj
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE User\src\LCD1602.c OPTIMIZE(8,SPEED) BROWSE INCDIR(.\User\inc;.\STC8Ax_LIB\
+                    -inc;.\STC8Ax_LIB\core) DEBUG OBJECTEXTEND PRINT(.\Listings\LCD1602.lst) OBJECT(.\Objects\LCD1602.obj)
+
+line level    source
+
+   1          /*-------------------------------------------------------------------
+   2          /*      (C) Copyright 2023, PSYM. All Rights Reserved
+   3          /*-------------------------------------------------------------------
+   4          /* File name   : LCD1602.c
+   5          /* Description :
+   6          /* Author      : PSYM
+   7          /*-------------------------------------------------------------------
+   8          /* Update note:
+   9          /* -----------   -----------   --------------------------------------
+  10          /*    Date         Author                       Note
+  11          /* -----------   -----------   --------------------------------------
+  12          /* 2023-05-25,     psym
+  13          /*   14:15
+  14          **/
+  15          
+  16          /* 包含头文件 -------------------------------------------------------*/
+  17          #include "LCD1602.h"
+  18          
+  19          /* 私有类型定义 -----------------------------------------------------*/
+  20          /* None. */
+  21          
+  22          /* 私有宏定义 -------------------------------------------------------*/
+  23          /* None. */
+  24          
+  25          /* 私有变量 ---------------------------------------------------------*/
+  26          /* None. */
+  27          
+  28          /* 扩展变量 ---------------------------------------------------------*/
+  29          /* None. */
+  30          
+  31          /* 私有函数原形 -----------------------------------------------------*/
+  32          void LCD1602_ReadBusy();
+  33          void LCD1602_WriteCmd(uint8 cmd);
+  34          void LCD1602_WriteData(uint8 dat);
+  35          void LCD1602_SetCursor(uint8 x, uint8 y);
+  36          
+  37          /* 函数体 -----------------------------------------------------------*/
+  38          
+  39          /**
+  40           * @brief: LCD1602 测忙函数
+  41           * @param: None
+  42           * @return: None
+  43           * @note: 判断液晶屏是否在执行其它程序
+  44           */
+  45          void LCD1602_ReadBusy()
+  46          {
+  47   1          uint8 sta;
+  48   1          DB = 0xFF;
+  49   1          RS = 0;
+  50   1          RW = 1;
+  51   1          do
+  52   1          {
+  53   2              EN = 1;
+  54   2              sta = DB;
+C51 COMPILER V9.60.0.0   LCD1602                                                           05/25/2023 19:29:05 PAGE 2   
+
+  55   2              EN = 0;                    // 使能，用完就拉低，释放总线
+  56   2          } while (sta & 0x80);
+  57   1      }
+  58          
+  59          /**
+  60           * @brief: LCD1602初始化程序
+  61           * @param: None
+  62           * @return: None
+  63           * @note: None
+  64           */
+  65          void LCD1602_Init()
+  66          {
+  67   1          Delay_ms(15);
+  68   1          LCD1602_WriteCmd(0x38);
+  69   1          Delay_ms(5);
+  70   1          LCD1602_WriteCmd(0x38);
+  71   1          Delay_ms(5);
+  72   1          LCD1602_WriteCmd(0x38); // 设置显示模式
+  73   1          LCD1602_WriteCmd(0x0C); // 开显示，显示光标，光标不闪烁
+  74   1          LCD1602_WriteCmd(0x06); // 光标右移，屏幕不移动
+  75   1          LCD1602_Clear();        // 清屏
+  76   1      }
+  77          
+  78          /**
+  79           * @brief: LED1602清屏程序
+  80           * @param: None
+  81           * @return: None
+  82           * @note: None
+  83           */
+  84          void LCD1602_Clear()
+  85          {
+  86   1          LCD1602_WriteCmd(0x01);
+  87   1      }
+  88          
+  89          /**
+  90           * @brief: LCD1602 写命令函数
+  91           * @param: cmd 指令
+  92           * @return: None
+  93           * @note: None
+  94           */
+  95          void LCD1602_WriteCmd(uint8 cmd)
+  96          {
+  97   1          LCD1602_ReadBusy();
+  98   1          RS = 0;
+  99   1          RW = 0;
+ 100   1          DB = cmd;
+ 101   1          EN = 1;
+ 102   1              Delay_ms(5);
+ 103   1          EN = 0;
+ 104   1      }
+ 105          
+ 106          /**
+ 107           * @brief: LCD1602 写数据函数
+ 108           * @param: dat 数据
+ 109           * @return: None
+ 110           * @note: None
+ 111          */
+ 112          void LCD1602_WriteData(uint8 dat)
+ 113          {
+ 114   1          LCD1602_ReadBusy();
+ 115   1          RS = 1;
+ 116   1          RW = 0;
+C51 COMPILER V9.60.0.0   LCD1602                                                           05/25/2023 19:29:05 PAGE 3   
+
+ 117   1          DB = dat;
+ 118   1          EN = 1;
+ 119   1              Delay_ms(5);
+ 120   1              EN = 0;
+ 121   1      }
+ 122          
+ 123          /**
+ 124           * @brief: LCD1602坐标显示函数
+ 125           * @param: x, y 坐标
+ 126           * @return: None
+ 127           * @note: 设置LCD1602的光标位置
+ 128           */
+ 129          void LCD1602_SetCursor(uint8 x, uint8 y)
+ 130          {
+ 131   1          uint8 addr;
+ 132   1          
+ 133   1          if (y == 0)
+ 134   1              addr = 0x00 + x;
+ 135   1          else
+ 136   1              addr = 0x40 + x;
+ 137   1      
+ 138   1          LCD1602_WriteCmd(addr | 0x80);
+ 139   1      }
+ 140          
+ 141          /**
+ 142           * @brief: LCD1602滚动显示函数
+ 143           * @param: flag
+ 144           * @return: None
+ 145           * @note: 输入0不滚动屏幕，输入1左移，输入2右移
+ 146           */
+ 147          void LCD_roll(uint8 flag)
+ 148          {
+ 149   1          switch (flag)
+ 150   1          {
+ 151   2          case 0:
+ 152   2              LCD1602_WriteCmd(0x06);
+ 153   2              break;
+ 154   2          case 1:
+ 155   2              LCD1602_WriteCmd(0x18);
+ 156   2              break;
+ 157   2          case 2:
+ 158   2              LCD1602_WriteCmd(0x1C);
+ 159   2              break;
+ 160   2          default:
+ 161   2              break;
+ 162   2          }
+ 163   1      }
+ 164          
+ 165          /**
+ 166           * @brief: LCD1602 显示字符串函数
+ 167           * @param: None
+ 168           * @return: None
+ 169           * @note: None
+ 170           */
+ 171          void LCD1602_ShowString(uint8 x, uint8 y, uint8 *str)
+ 172          {
+ 173   1          LCD1602_SetCursor(x, y); // 当前字符的坐标
+ 174   1          while (*str != '\0')
+ 175   1          {
+ 176   2              LCD1602_WriteData(*str++);
+ 177   2          }
+ 178   1      }
+C51 COMPILER V9.60.0.0   LCD1602                                                           05/25/2023 19:29:05 PAGE 4   
+
+ 179          
+ 180          /*>>>>>>>>>> (C) COPYRIGHT PSYM <<<<<< >>>>>> END OF FILE <<<<<<<<<<*/
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    203    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
